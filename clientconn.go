@@ -429,15 +429,20 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 			}
 		}
 	}
-
 	cc.mkp = cc.dopts.copts.KeepaliveParams
 
+	t := parseTarget(target)
+	network := "tcp"
+	if t.Scheme == "unix" {
+		network = t.Scheme
+	}
+
 	if cc.dopts.copts.Dialer == nil {
-		cc.dopts.copts.Dialer = newProxyDialer(
-			func(ctx context.Context, addr string) (net.Conn, error) {
-				return dialContext(ctx, "tcp", addr)
-			},
-		)
+		dial, err := dialContext(ctx, network, t.Endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("failed to dialContext: %v", err)
+		}
+		cc.dopts.copts.Dialer = newProxyDialer(dial)
 	}
 
 	if cc.dopts.copts.UserAgent != "" {
