@@ -438,12 +438,7 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 	}
 
 	if cc.dopts.copts.Dialer == nil {
-		var dial net.Conn
-		dial, err := dialContext(ctx, network, t.Endpoint)
-		if err != nil {
-			return nil, fmt.Errorf("failed to dialContext: %v", err)
-		}
-		cc.dopts.copts.Dialer = newProxyDialer(dial)
+		cc.dopts.copts.Dialer = newProxyDialer(proxyDial(ctx, network, t.Endpoint))
 	}
 
 	if cc.dopts.copts.UserAgent != "" {
@@ -1372,6 +1367,10 @@ func (ac *addrConn) getState() connectivity.State {
 	ac.mu.Lock()
 	defer ac.mu.Unlock()
 	return ac.state
+}
+
+func proxyDial(ctx context.Context, network string, addr string) (net.Conn, error) {
+	return dialContext(ctx, network, addr)
 }
 
 // ErrClientConnTimeout indicates that the ClientConn cannot establish the
