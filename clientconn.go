@@ -439,7 +439,7 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 
 	if cc.dopts.copts.Dialer == nil {
 		cc.dopts.copts.Dialer = newProxyDialer(
-			func(ctx context.Context) (net.Conn, error) {
+			func(ctx context.Context, _ string) (net.Conn, error) {
 				return dialContext(ctx, network, t.Endpoint)
 			},
 		)
