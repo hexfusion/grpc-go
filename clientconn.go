@@ -438,6 +438,7 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 	}
 
 	if cc.dopts.copts.Dialer == nil {
+		var dial net.Conn
 		dial, err := dialContext(ctx, network, t.Endpoint)
 		if err != nil {
 			return nil, fmt.Errorf("failed to dialContext: %v", err)
