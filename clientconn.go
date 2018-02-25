@@ -429,17 +429,17 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 			}
 		}
 	}
-	cc.mkp = cc.dopts.copts.KeepaliveParams
 
-	t := parseTarget(target)
-	network := "tcp"
-	if t.Scheme == "unix" {
-		network = t.Scheme
-	}
+	cc.mkp = cc.dopts.copts.KeepaliveParams
 
 	if cc.dopts.copts.Dialer == nil {
 		cc.dopts.copts.Dialer = newProxyDialer(
-			func(ctx context.Context, _ string) (net.Conn, error) {
+			func(ctx context.Context, addr string) (net.Conn, error) {
+				network := "tcp"
+				t := parseTarget(addr)
+				if t.Scheme == "unix" {
+					network = t.Scheme
+				}
 				return dialContext(ctx, network, t.Endpoint)
 			},
 		)
