@@ -435,12 +435,12 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 	if cc.dopts.copts.Dialer == nil {
 		cc.dopts.copts.Dialer = newProxyDialer(
 			func(ctx context.Context, addr string) (net.Conn, error) {
-				network := "tcp"
+				proto := "tcp"
 				t := parseTarget(addr)
 				if t.Scheme == "unix" {
-					network = t.Scheme
+					proto = t.Scheme
 				}
-				return dialContext(ctx, network, t.Endpoint)
+				return dialContext(ctx, proto, t.Endpoint)
 			},
 		)
 	}
