@@ -444,7 +444,7 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 				if t.Scheme == "unix" {
 					network = t.Scheme
 				}
-				return dialContext(ctx, network, t.Host)
+				return dialContext(ctx, network, addr)
 			},
 		)
 	}
