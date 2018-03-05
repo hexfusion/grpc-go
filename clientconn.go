@@ -23,11 +23,13 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"golang.org/x/net/context"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc/balancer"
@@ -402,6 +404,8 @@ func Dial(target string, opts ...DialOption) (*ClientConn, error) {
 // https://github.com/grpc/grpc/blob/master/doc/naming.md.
 // e.g. to use dns resolver, a "dns:///" prefix should be applied to the target.
 func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *ClientConn, err error) {
+	fmt.Fprintln(os.Stderr, "made it")
+
 	cc := &ClientConn{
 		target: target,
 		csMgr:  &connectivityStateManager{},
@@ -410,7 +414,7 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 		blockingpicker: newPickerWrapper(),
 	}
 	cc.ctx, cc.cancel = context.WithCancel(context.Background())
-
+	fmt.Fprintln(os.Stderr, "made it CC")
 	for _, opt := range opts {
 		opt(&cc.dopts)
 	}
@@ -429,15 +433,44 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 			}
 		}
 	}
-
+	strc := spew.Sdump(ctx)
+	fmt.Fprintf(os.Stderr, "ctx : %s target %s", strc, target)
 	cc.mkp = cc.dopts.copts.KeepaliveParams
-
 	if cc.dopts.copts.Dialer == nil {
-		cc.dopts.copts.Dialer = newProxyDialer(
+		fmt.Fprintln(os.Stderr, "Ooops no dialer")
+		d := newProxyDialer(
 			func(ctx context.Context, addr string) (net.Conn, error) {
-				return dialContext(ctx, "tcp", addr)
+				fmt.Fprintln(os.Stderr, "MAde alllz the wayz")
+				fmt.Fprintf(os.Stderr, "addr : %s target %s", addr, target)
+				network := "tcp"
+				p := regexp.MustCompile(`^[a-z]+://`)
+                if p.MatchString(addr) {
+					t, err := url.Parse(addr)
+					if err != nil {
+						return nil, err
+					}
+                    if t.Scheme == "unix" && t.Host != "" {
+						network = t.Scheme
+						addr = t.Host
+					}
+				}
+
+}
+				t := parseTarget(addr)
+				str := spew.Sdump(t)
+				fmt.Fprintf(os.Stderr, "this is target %s this is dump %s", str, target)
+				//		return nil, fmt.Errorf("###### %s", str)
+				if t.Scheme == "unix" {
+					network = t.Scheme
+				}
+				return dialContext(ctx, network, addr)
 			},
 		)
+		str := spew.Sdump(d)
+		fmt.Fprintf(os.Stderr, "this is CC Dialer %s", str)
+
+		cc.dopts.copts.Dialer = d
+
 	}
 
 	if cc.dopts.copts.UserAgent != "" {
