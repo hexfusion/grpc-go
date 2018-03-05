@@ -119,6 +119,56 @@ func TestDialWithMultipleBackendsNotSendingServerPreface(t *testing.T) {
 	}
 }
 
+func TestDialWaitsForServerUnixSettings(t *testing.T) {
+	defer leakcheck.Check(t)
+	server, err := net.Listen("unix", "etcd:1")
+	if err != nil {
+		t.Fatalf("Error while listening. Err: %v", err)
+	}
+	defer server.Close()
+	done := make(chan struct{})
+	sent := make(chan struct{})
+	dialDone := make(chan struct{})
+	go func() { // Launch the server.
+		defer func() {
+			close(done)
+		}()
+		conn, err := server.Accept()
+		if err != nil {
+			t.Errorf("Error while accepting. Err: %v", err)
+			return
+		}
+		defer conn.Close()
+		// Sleep so that if the test were to fail it
+		// will fail more often than not.
+		time.Sleep(100 * time.Millisecond)
+		framer := http2.NewFramer(conn, conn)
+		close(sent)
+		if err := framer.WriteSettings(http2.Setting{}); err != nil {
+			t.Errorf("Error while writing settings. Err: %v", err)
+			return
+		}
+		<-dialDone // Close conn only after dial returns.
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
+	addr := "unix://" + server.Addr().String()
+	client, err := DialContext(ctx, addr, WithInsecure(), WithWaitForHandshake(), WithBlock())
+	close(dialDone)
+	if err != nil {
+		cancel()
+		t.Fatalf("Error while dialing. Err: %v", err)
+	}
+	defer client.Close()
+	select {
+	case <-sent:
+	default:
+		t.Fatalf("Dial returned before server settings were sent")
+	}
+	<-done
+
+}
+
 func TestDialWaitsForServerSettings(t *testing.T) {
 	defer leakcheck.Check(t)
 	server, err := net.Listen("tcp", "localhost:0")
