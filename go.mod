@@ -18,4 +18,4 @@ require (
 	google.golang.org/protobuf v1.27.1
 )
 
-replace golang.org/x/net => github.com/hexfusion/net v0.0.0-20220811200302-6e2244d6ddc4
+replace golang.org/x/net => github.com/hexfusion/net v0.0.0-20220811201621-4dc3390d3fb0
