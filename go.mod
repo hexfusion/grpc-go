@@ -17,3 +17,5 @@ require (
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
 	google.golang.org/protobuf v1.27.1
 )
+
+replace golang.org/x/net => github.com/hexfusion/net v0.0.0-20220811181554-6be49b2e0569
